@@ -1,0 +1,134 @@
+#pragma version 10
+
+smart_contracts.hello_world.contract.HelloWorld.approval_program:
+    // smart_contracts/hello_world/contract.py:16
+    // class HelloWorld(ARC4Contract):
+    txn NumAppArgs
+    bz main_bare_routing@6
+    method "storeGreeting(uint64,string)void"
+    method "getGreeting(uint64)string"
+    txna ApplicationArgs 0
+    match main_storeGreeting_route@2 main_getGreeting_route@3
+    err // reject transaction
+
+main_storeGreeting_route@2:
+    // smart_contracts/hello_world/contract.py:20
+    // @abimethod()
+    txn OnCompletion
+    !
+    assert // OnCompletion is NoOp
+    txn ApplicationID
+    assert // is not creating
+    // smart_contracts/hello_world/contract.py:16
+    // class HelloWorld(ARC4Contract):
+    txna ApplicationArgs 1
+    txna ApplicationArgs 2
+    extract 2 0
+    // smart_contracts/hello_world/contract.py:20
+    // @abimethod()
+    callsub storeGreeting
+    int 1
+    return
+
+main_getGreeting_route@3:
+    // smart_contracts/hello_world/contract.py:29
+    // @abimethod()
+    txn OnCompletion
+    !
+    assert // OnCompletion is NoOp
+    txn ApplicationID
+    assert // is not creating
+    // smart_contracts/hello_world/contract.py:16
+    // class HelloWorld(ARC4Contract):
+    txna ApplicationArgs 1
+    // smart_contracts/hello_world/contract.py:29
+    // @abimethod()
+    callsub getGreeting
+    byte 0x151f7c75
+    swap
+    concat
+    log
+    int 1
+    return
+
+main_bare_routing@6:
+    // smart_contracts/hello_world/contract.py:16
+    // class HelloWorld(ARC4Contract):
+    txn OnCompletion
+    !
+    assert // reject transaction
+    txn ApplicationID
+    !
+    assert // is creating
+    int 1
+    return
+
+
+// smart_contracts.hello_world.contract.HelloWorld.storeGreeting(indice: bytes, name: bytes) -> void:
+storeGreeting:
+    // smart_contracts/hello_world/contract.py:20-21
+    // @abimethod()
+    // def storeGreeting(self, indice: arc4.UInt64, name: String) -> None:
+    proto 2 0
+    // smart_contracts/hello_world/contract.py:26
+    // greeting= arc4.String("Hello" + name)
+    byte "Hello"
+    frame_dig -1
+    concat
+    dup
+    len
+    itob
+    extract 6 2
+    swap
+    concat
+    // smart_contracts/hello_world/contract.py:25-27
+    // self.greetings[key] = BoxValue(
+    //     greeting= arc4.String("Hello" + name)
+    // )
+    byte 0x0002
+    swap
+    concat
+    // smart_contracts/hello_world/contract.py:18
+    // self.greetings = BoxMap(BoxKey, BoxValue)
+    byte "greetings"
+    // smart_contracts/hello_world/contract.py:25
+    // self.greetings[key] = BoxValue(
+    frame_dig -2
+    concat
+    // smart_contracts/hello_world/contract.py:25-27
+    // self.greetings[key] = BoxValue(
+    //     greeting= arc4.String("Hello" + name)
+    // )
+    dup
+    box_del
+    pop
+    swap
+    box_put
+    retsub
+
+
+// smart_contracts.hello_world.contract.HelloWorld.getGreeting(indice: bytes) -> bytes:
+getGreeting:
+    // smart_contracts/hello_world/contract.py:29-30
+    // @abimethod()
+    // def getGreeting(self, indice: arc4.UInt64) -> arc4.String:
+    proto 1 1
+    // smart_contracts/hello_world/contract.py:18
+    // self.greetings = BoxMap(BoxKey, BoxValue)
+    byte "greetings"
+    // smart_contracts/hello_world/contract.py:34
+    // return self.greetings[key].greeting
+    frame_dig -1
+    concat
+    box_get
+    assert // check self.greetings entry exists
+    dup
+    int 0
+    extract_uint16
+    swap
+    dup
+    len
+    swap
+    cover 2
+    substring3
+    retsub
